@@ -8,6 +8,12 @@ type Beat = { id: string; needLipSync?: boolean };
 
 type Script = { beats: Beat[] };
 
+type ReplicateResponse = {
+  id: string;
+  status: string;
+  output?: string;
+};
+
 async function replicateWav2Lip(video: Buffer, audio: Buffer) {
   const input = {
     face: `data:video/mp4;base64,${video.toString("base64")}`,
@@ -23,18 +29,18 @@ async function replicateWav2Lip(video: Buffer, audio: Buffer) {
       version: "f3bd0cb5538aa0c47a58f3408b233d6cea61bc939f1b256a0e065b4bd11fdd20",
       input
     })
-  }).then(r => r.json());
+  }).then(r => r.json()) as ReplicateResponse;
 
-  let poll = job;
+  let poll: ReplicateResponse = job;
   while (!["succeeded", "failed", "canceled"].includes(poll.status)) {
     await new Promise(r => setTimeout(r, 2000));
     poll = await fetch(`https://api.replicate.com/v1/predictions/${job.id}`, {
       headers: { "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}` }
-    }).then(r => r.json());
+    }).then(r => r.json()) as ReplicateResponse;
   }
   if (poll.status !== "succeeded") throw new Error("Wav2Lip failed");
-  const url = poll.output;
-  const outBuf = await fetch(url).then(r => r.arrayBuffer());
+  if (!poll.output) throw new Error("No output URL in response");
+  const outBuf = await fetch(poll.output).then(r => r.arrayBuffer());
   return Buffer.from(outBuf);
 }
 

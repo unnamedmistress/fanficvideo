@@ -6,6 +6,16 @@ import { readJSON } from "./util.js";
 
 const runway = new RunwayML({ apiKey: process.env.RUNWAY_API_KEY! });
 
+// Runway API supported durations (in seconds)
+const SUPPORTED_DURATIONS = [4, 6, 8] as const;
+type SupportedDuration = typeof SUPPORTED_DURATIONS[number];
+
+function mapToSupportedDuration(seconds: number): SupportedDuration {
+  if (seconds <= 4) return 4;
+  if (seconds <= 6) return 6;
+  return 8;
+}
+
 type Beat = {
   id: string;
   prompt: string;
@@ -26,11 +36,12 @@ async function main() {
 
   for (const beat of script.beats) {
     console.log("Render", beat.id);
+    const duration = mapToSupportedDuration(beat.durationSec);
     const task = await runway.textToVideo.create({
-      model: "gen4_turbo",
+      model: "veo3.1_fast",
       promptText: beat.prompt,
       ratio: "1920:1080",
-      duration: beat.durationSec
+      duration
     }).waitForTaskOutput();
 
     const url = task.output?.[0];
