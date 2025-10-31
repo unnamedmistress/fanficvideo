@@ -1,0 +1,30 @@
+{
+  "title": "Neon Alley Confession",
+  "characters": [
+    {
+      "name": "Heroine",
+      "embedding_token": "@HeroineA",
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "reference_images": [
+        "data/refs/heroine_ref1.jpg",
+        "data/refs/heroine_ref2.jpg"
+      ]
+    }
+  ],
+  "beats": [
+    {
+      "id": "beat1",
+      "durationSec": 5,
+      "prompt": "A rainy neon alley at night with @HeroineA looking back. Cinematic, shallow depth of field, soft rim light, filmic grain.",
+      "camera": "medium shot"
+    },
+    {
+      "id": "beat2",
+      "durationSec": 4,
+      "prompt": "Close up of @HeroineA whispering, rain beads on hair, soft rim light.",
+      "dialogue": { "speaker": "Heroine", "text": "I will fix this." },
+      "needLipSync": true,
+      "camera": "tight close up"
+    }
+  ]
+}
