@@ -4,7 +4,7 @@ import path from "path";
 import fetch from "node-fetch";
 import { readJSON } from "./util.js";
 
-type Beat = { id: string; needLipSync?: boolean };
+type Beat = { id: string; needLipSync?: boolean; effect?: string };
 
 type Script = { beats: Beat[] };
 

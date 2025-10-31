@@ -22,6 +22,7 @@ type Beat = {
   durationSec: number;
   dialogue?: { speaker: string; text: string };
   needLipSync?: boolean;
+  effect?: string;
 };
 
 type Script = {

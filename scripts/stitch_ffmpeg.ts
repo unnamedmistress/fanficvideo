@@ -3,7 +3,7 @@ import path from "path";
 import { readJSON } from "./util.js";
 import { spawn } from "child_process";
 
-type Beat = { id: string; needLipSync?: boolean };
+type Beat = { id: string; needLipSync?: boolean; effect?: string };
 
 type Script = { beats: Beat[] };
 
@@ -19,9 +19,33 @@ async function ffmpegConcat(files: string[], out: string) {
   });
 }
 
+async function fileExists(filePath: string) {
+  try {
+    await fs.access(path.resolve(filePath));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const script = await readJSON<Script>("data/beats.json");
-  const files = script.beats.map(b => b.needLipSync ? `out/synced/${b.id}.mp4` : `out/${b.id}.mp4`);
+  const files = [] as string[];
+  for (const beat of script.beats) {
+    const kissPath = `out/kiss/${beat.id}.mp4`;
+    if (beat.effect === "kiss" && await fileExists(kissPath)) {
+      files.push(kissPath);
+      continue;
+    }
+
+    const syncedPath = `out/synced/${beat.id}.mp4`;
+    if (beat.needLipSync && await fileExists(syncedPath)) {
+      files.push(syncedPath);
+      continue;
+    }
+
+    files.push(`out/${beat.id}.mp4`);
+  }
   const out = path.resolve("out/final_scene.mp4");
   await ffmpegConcat(files, out);
   console.log("Final:", out);
