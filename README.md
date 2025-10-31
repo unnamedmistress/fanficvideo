@@ -25,14 +25,24 @@ Optional secrets (if using specific features):
 ## Local run (optional)
 
 ```
-npm i
+npm install
 cp .env.example .env # fill in keys
 npm run plan
-npm run render
+npm run render           # accepts --model, --ratio and --advanced flags
 npm run tts
 npm run lipsync
 npm run stitch
 ```
+
+### Developer tooling
+
+```
+npm run lint
+npm run format
+npm test
+```
+
+The generator remembers the last model and aspect ratio you used in `data/user-preferences.json` so repeat runs start with sensible defaults. Pass `--advanced` to any CLI script to reveal additional diagnostics without overwhelming the default output.
 
 ## Character Reference Images
 Upload character reference images to the `data/refs/` directory:

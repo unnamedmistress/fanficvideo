@@ -2,16 +2,9 @@ import "dotenv/config";
 import fs from "fs/promises";
 import path from "path";
 import fetch from "node-fetch";
-import { env, envOr, readJSON, saveURL, sleep } from "./util.js";
-
-type Beat = {
-  id: string;
-  effect?: string;
-};
-
-type Script = {
-  beats: Beat[];
-};
+import { env, envOr, saveURL, sleep } from "./util.js";
+import { loadScriptPlan, ScriptPlan, ScriptValidationError } from "./script_schema.js";
+import { StatusReporter, withRetry } from "./status.js";
 
 type GenerateResponse = {
   task_id?: string;
@@ -59,18 +52,22 @@ async function pollTask(url: string): Promise<TaskOutput> {
 
 async function triggerEffect(beatId: string, videoPath: string) {
   const video = await fs.readFile(videoPath);
-  const res = await fetch(`${API_BASE}/video-effects/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY}`
-    },
-    body: JSON.stringify({
-      effect: "kiss",
-      metadata: { beatId },
-      input_video: `data:video/mp4;base64,${video.toString("base64")}`
-    })
-  });
+  const res = await withRetry(
+    () =>
+      fetch(`${API_BASE}/video-effects/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          effect: "kiss",
+          metadata: { beatId },
+          input_video: `data:video/mp4;base64,${video.toString("base64")}`
+        })
+      }),
+    { attempts: 3, delayMs: 1500 }
+  );
   if (!res.ok) {
     throw new Error(`GoEnhance generate failed ${res.status}: ${await res.text()}`);
   }
@@ -87,10 +84,28 @@ async function triggerEffect(beatId: string, videoPath: string) {
 }
 
 async function main() {
-  const script = await readJSON<Script>("data/beats.json");
-  const beats = script.beats.filter(b => b.effect === "kiss");
+  const status = new StatusReporter("kiss", {
+    escalationContact: "support@fanficvideo.local"
+  });
+
+  let plan: ScriptPlan;
+  try {
+    plan = await loadScriptPlan();
+  } catch (error) {
+    if (error instanceof ScriptValidationError) {
+      status.error(error.message);
+      console.error(error.formatIssues());
+      return;
+    }
+    throw error;
+  }
+
+  const beats = plan.beats.filter(b => b.effect === "kiss");
   if (beats.length === 0) {
-    console.log("No beats with effect 'kiss' found");
+    status.emptyState(
+      "Kiss effect",
+      "Tag beats with effect: \"kiss\" to send them to GoEnhance or skip this step."
+    );
     return;
   }
 
@@ -99,22 +114,29 @@ async function main() {
 
   for (const beat of beats) {
     const baseVideo = path.resolve("out", `${beat.id}.mp4`);
-    console.log(`Submitting GoEnhance task for ${beat.id}`);
-    const result = await triggerEffect(beat.id, baseVideo);
-    const downloadUrl =
-      result.result?.download_url ??
-      result.result?.video_url ??
-      result.output?.video_url;
-    if (!downloadUrl) {
-      throw new Error(`GoEnhance completed without download URL for beat ${beat.id}`);
-    }
-    const outPath = path.join(outDir, `${beat.id}.mp4`);
-    await saveURL(downloadUrl, outPath);
-    console.log(`Saved ${outPath}`);
+    await status.step(`Submitting GoEnhance task for ${beat.id}`, async () => {
+      const result = await triggerEffect(beat.id, baseVideo);
+      const downloadUrl =
+        result.result?.download_url ??
+        result.result?.video_url ??
+        result.output?.video_url;
+      if (!downloadUrl) {
+        throw new Error(`GoEnhance completed without download URL for beat ${beat.id}`);
+      }
+      const outPath = path.join(outDir, `${beat.id}.mp4`);
+      await saveURL(downloadUrl, outPath);
+    });
   }
+
+  status.success(`Enhanced ${beats.length} beat(s) with kiss overlay.`);
 }
 
-main().catch(err => {
-  console.error(err);
+void main().catch(error => {
+  if (error instanceof ScriptValidationError) {
+    console.error(error.message);
+    console.error(error.formatIssues());
+  } else {
+    console.error(error);
+  }
   process.exit(1);
 });

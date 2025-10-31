@@ -1,11 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
-import { readJSON } from "./util.js";
 import { spawn } from "child_process";
-
-type Beat = { id: string; needLipSync?: boolean; effect?: string };
-
-type Script = { beats: Beat[] };
+import { loadScriptPlan, ScriptPlan, ScriptValidationError } from "./script_schema.js";
+import { StatusReporter } from "./status.js";
 
 async function ffmpegConcat(files: string[], out: string) {
   const listPath = path.resolve("out", "ffconcat.txt");
@@ -29,9 +26,29 @@ async function fileExists(filePath: string) {
 }
 
 async function main() {
-  const script = await readJSON<Script>("data/beats.json");
+  const status = new StatusReporter("stitch", {
+    escalationContact: "support@fanficvideo.local"
+  });
+
+  let plan: ScriptPlan;
+  try {
+    plan = await loadScriptPlan();
+  } catch (error) {
+    if (error instanceof ScriptValidationError) {
+      status.error(error.message);
+      console.error(error.formatIssues());
+      return;
+    }
+    throw error;
+  }
+
+  if (plan.beats.length === 0) {
+    status.emptyState("Beats", "Add beats before stitching a final video.");
+    return;
+  }
+
   const files = [] as string[];
-  for (const beat of script.beats) {
+  for (const beat of plan.beats) {
     const kissPath = `out/kiss/${beat.id}.mp4`;
     if (beat.effect === "kiss" && await fileExists(kissPath)) {
       files.push(kissPath);
@@ -44,11 +61,32 @@ async function main() {
       continue;
     }
 
-    files.push(`out/${beat.id}.mp4`);
+    const basePath = `out/${beat.id}.mp4`;
+    if (await fileExists(basePath)) {
+      files.push(basePath);
+    } else {
+      status.warn(`Missing source clip for beat ${beat.id}. Expected ${basePath}.`);
+    }
   }
+
+  if (files.length === 0) {
+    status.emptyState("Rendered clips", "Generate videos before stitching them together.");
+    return;
+  }
+
   const out = path.resolve("out/final_scene.mp4");
-  await ffmpegConcat(files, out);
-  console.log("Final:", out);
+  await status.step("Concatenating final video", async () => {
+    await ffmpegConcat(files, out);
+  });
+  status.success(`Final scene ready at ${out}`);
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+void main().catch(error => {
+  if (error instanceof ScriptValidationError) {
+    console.error(error.message);
+    console.error(error.formatIssues());
+  } else {
+    console.error(error);
+  }
+  process.exit(1);
+});
