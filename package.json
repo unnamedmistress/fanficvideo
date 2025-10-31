@@ -1,0 +1,23 @@
+{
+  "name": "ai-fanfic-video-automation",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "plan": "ts-node ./scripts/plan_scenes.ts",
+    "render": "ts-node ./scripts/call_generator.ts",
+    "tts": "ts-node ./scripts/call_tts.ts",
+    "lipsync": "ts-node ./scripts/call_lipsync.ts",
+    "stitch": "ts-node ./scripts/stitch_ffmpeg.ts"
+  },
+  "dependencies": {
+    "@runwayml/sdk": "^0.4.0",
+    "dotenv": "^16.4.5",
+    "ffmpeg-static": "^5.2.0",
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
