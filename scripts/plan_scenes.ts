@@ -1,13 +1,18 @@
 import "dotenv/config";
 import fs from "fs/promises";
 import path from "path";
+import { validateScript } from "./script_schema.js";
+import { StatusReporter } from "./status.js";
 
 // Simple baseline: if beats.json exists, keep it. Otherwise build a minimal one from fanfic.txt
 async function main() {
   const beatsPath = path.resolve("data/beats.json");
+  const status = new StatusReporter("planner", {
+    escalationContact: "support@fanficvideo.local"
+  });
   try {
     await fs.access(beatsPath);
-    console.log("beats.json present, skipping autoplanning");
+    status.info("beats.json present, skipping autoplanning");
     return;
   } catch {}
 
@@ -54,11 +59,16 @@ async function main() {
     ]
   };
 
+  validateScript(json);
+
   await fs.writeFile(beatsPath, JSON.stringify(json, null, 2));
-  console.log("Wrote data/beats.json");
+  status.success("Wrote data/beats.json");
 }
 
-main().catch(e => {
+void main().catch(e => {
+  if ("formatIssues" in e && typeof e.formatIssues === "function") {
+    console.error((e as { formatIssues: () => string }).formatIssues());
+  }
   console.error(e);
   process.exit(1);
 });
