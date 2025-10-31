@@ -38,6 +38,18 @@ async function main() {
         dialogue: { speaker: "Heroine", text: line.replace(/\"/g, '"') },
         needLipSync: true,
         camera: "tight close up"
+      },
+      {
+        id: "beat3",
+        durationSec: 6,
+        prompt: "Two-shot of @HeroineA leaning in for a kiss beneath the neon rain, soft rim light, subtle heart-shaped bokeh. Use kiss overlay from data/effects/kiss_overlay.png and sparkle particles from data/effects/kiss_sparkles.mov.",
+        dialogue: { speaker: "Heroine", text: "Come closer..." },
+        effect: "kiss",
+        effectAssets: {
+          overlay: "data/effects/kiss_overlay.png",
+          particles: "data/effects/kiss_sparkles.mov"
+        },
+        camera: "two shot"
       }
     ]
   };
