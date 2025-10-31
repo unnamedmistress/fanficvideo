@@ -23,17 +23,17 @@ async function replicateWav2Lip(video: Buffer, audio: Buffer) {
       version: "f3bd0cb5538aa0c47a58f3408b233d6cea61bc939f1b256a0e065b4bd11fdd20",
       input
     })
-  }).then(r => r.json());
+  }).then(r => r.json()) as any;
 
-  let poll = job;
+  let poll = job as any;
   while (!["succeeded", "failed", "canceled"].includes(poll.status)) {
     await new Promise(r => setTimeout(r, 2000));
     poll = await fetch(`https://api.replicate.com/v1/predictions/${job.id}`, {
       headers: { "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}` }
-    }).then(r => r.json());
+    }).then(r => r.json()) as any;
   }
   if (poll.status !== "succeeded") throw new Error("Wav2Lip failed");
-  const url = poll.output;
+  const url = poll.output as string;
   const outBuf = await fetch(url).then(r => r.arrayBuffer());
   return Buffer.from(outBuf);
 }

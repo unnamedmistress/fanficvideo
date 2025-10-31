@@ -26,11 +26,13 @@ async function main() {
 
   for (const beat of script.beats) {
     console.log("Render", beat.id);
+    // Map duration to supported values (4, 6, or 8 seconds)
+    const duration = beat.durationSec <= 4 ? 4 : beat.durationSec <= 6 ? 6 : 8;
     const task = await runway.textToVideo.create({
-      model: "gen4_turbo",
+      model: "veo3.1_fast",
       promptText: beat.prompt,
       ratio: "1920:1080",
-      duration: beat.durationSec
+      duration: duration as 4 | 6 | 8
     }).waitForTaskOutput();
 
     const url = task.output?.[0];
