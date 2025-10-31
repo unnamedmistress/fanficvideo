@@ -20,3 +20,11 @@ export function env(name: string) {
   if (!v) throw new Error(`Missing env ${name}`);
   return v;
 }
+
+export function envOr(name: string, defaultValue: string) {
+  return process.env[name] ?? defaultValue;
+}
+
+export function sleep(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}

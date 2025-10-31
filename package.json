@@ -7,7 +7,8 @@
     "render": "ts-node ./scripts/call_generator.ts",
     "tts": "ts-node ./scripts/call_tts.ts",
     "lipsync": "ts-node ./scripts/call_lipsync.ts",
-    "stitch": "ts-node ./scripts/stitch_ffmpeg.ts"
+    "stitch": "ts-node ./scripts/stitch_ffmpeg.ts",
+    "kiss": "ts-node ./scripts/call_kiss.ts"
   },
   "dependencies": {
     "@runwayml/sdk": "^3.5.0",
