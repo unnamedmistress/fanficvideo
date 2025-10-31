@@ -1,0 +1,55 @@
+name: build_scene
+
+on:
+  workflow_dispatch:
+    inputs:
+      beats_file:
+        description: path to beats json
+        required: true
+        default: data/beats.json
+  push:
+    paths:
+      - "data/beats.json"
+      - "data/fanfic.txt"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    env:
+      RUNWAY_API_KEY: ${{ secrets.RUNWAY_API_KEY }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: install deps
+        run: npm ci || npm i
+
+      - name: plan scenes
+        run: npm run plan
+
+      - name: render beats
+        run: npm run render
+
+      - name: tts
+        run: npm run tts
+
+      - name: lip sync
+        run: npm run lipsync
+
+      - name: stitch
+        run: npm run stitch
+
+      - name: upload video
+        uses: actions/upload-artifact@v4
+        with:
+          name: final_scene
+          path: out/final_scene.mp4
